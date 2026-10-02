@@ -258,3 +258,54 @@ svg { display: block; flex: none; }
 .val-poor { background: #FDE8E7; color: #A3221B; }
 .val-scale { font-size: 13px !important; }
 .run-btn-2 { background: #fff; color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--brand); }
+
+/* ---------- researcher console ---------- */
+.ov-console { -webkit-user-select: text; user-select: text; }
+.con { max-width: 1240px; margin: 0 auto; padding: 28px 24px 60px; }
+.con-head { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.con-head .run-brand { margin: 0; }
+.con-head h1 { font-size: 26px; font-weight: 700; }
+.con-head p { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.con-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; margin-bottom: 18px; }
+@media (max-width: 900px) { .con-grid { grid-template-columns: 1fr; } }
+.con-card { background: #fff; border: 1px solid var(--card-line); border-radius: 16px; padding: 22px 24px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(22, 25, 29, .05); }
+.con-grid .con-card { margin-bottom: 0; }
+.con-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+.con-h2b { margin-top: 28px; }
+.con-form label { display: flex; flex-direction: column; gap: 6px; flex: 1; margin-bottom: 12px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.con-form input:not([type=checkbox]), .con-form select { height: 42px; padding: 0 12px; border: 1.5px solid #C9CED5; border-radius: 10px; background: #fff; color: var(--ink); font: 400 15px Roboto, sans-serif; }
+.con-form input:focus, .con-form select:focus { outline: none; border-color: var(--brand); }
+.con-row { display: flex; gap: 12px; }
+.con-form .con-check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 400; }
+.con-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--brand); }
+.con-hint { margin: -4px 0 12px; font-size: 13px; line-height: 19px; color: var(--muted); }
+.con-warn { margin: 4px 0 14px; padding: 10px 12px; border: 1px solid #F5C2C0; border-radius: 10px; background: #FDECEC; color: #B3261E; font-size: 13.5px; line-height: 19px; font-weight: 500; }
+.con-file { color: #8A5300; }
+.con-exists { color: #B3261E; font-weight: 500; }
+.con-order { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 26px; margin-bottom: 10px; font-size: 13px; }
+.con-order span.recall, .con-order span.filler { padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+.con-order span.recall { background: var(--info-bg); color: var(--info-fg); }
+.con-order span.filler { background: #F0F1F3; color: var(--muted); }
+.con-key { margin-left: auto; display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.con-key i { display: inline-block; width: 10px; height: 10px; margin-left: 8px; border-radius: 3px; }
+.con-key i.recall { background: #C7D2FE; }
+.con-key i.filler { background: #E1E4E8; }
+.con-form .run-btn { margin: 4px 0 16px; }
+.con-btn { height: 34px; padding: 0 12px; border: 1.5px solid var(--brand); border-radius: 8px; background: #fff; color: var(--brand); font: 700 13px Roboto, sans-serif; cursor: pointer; }
+.con-del { border-color: #D93025; color: #B3261E; }
+.ss { width: 100%; margin-bottom: 12px; border-collapse: collapse; font-size: 14px; }
+.ss td { padding: 10px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+.ss-btns { text-align: right; white-space: nowrap; }
+.ss-btns .con-btn { margin: 0 0 4px 4px; }
+.muted { color: var(--muted); font-size: 12.5px; }
+.tag { display: inline-block; padding: 1px 6px; border-radius: 5px; background: #F0F1F3; color: var(--muted); font-size: 11.5px; font-weight: 500; }
+.tag-warn { background: var(--nudge-bg); color: var(--nudge-fg); }
+.bt-wrap { overflow-x: auto; }
+.bt { width: 100%; border-collapse: collapse; font-size: 14px; }
+.bt th { padding: 8px; border-bottom: 1.5px solid var(--line); text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.bt td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
+.bt .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bt .items { font-size: 13px; color: var(--muted); }
+.con-tobii ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 22px; }
+.con-tobii li { margin-bottom: 8px; }
+.con code { padding: 1px 5px; border-radius: 5px; background: #F0F1F3; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
