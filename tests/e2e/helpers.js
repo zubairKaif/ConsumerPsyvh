@@ -38,4 +38,79 @@ function watchErrors(page) {
   return errors;
 }
 
-module.exports = { C, APP, DIST, open, view, aois, byName, text, pixelDiff, watchErrors };
+/** Minimal RFC 4180 CSV parser: returns { header, rows: [objects] }. */
+function parseCSV(textIn) {
+  const out = [];
+  let row = [], cell = '', q = false;
+  const t = textIn.replace(/\r\n/g, '\n');
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (q) {
+      if (ch === '"' && t[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); out.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell !== '' || row.length) { row.push(cell); out.push(row); }
+  const header = out.shift();
+  return { header, rows: out.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i]]))) };
+}
+
+async function readDownload(download) {
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const c of stream) chunks.push(c);
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/**
+ * Plays a whole run-mode session like a participant.
+ * opts.onBill(page, { trial, order }) handles each first-pass bill (default: Place order).
+ * Probes: recall answers with the true final total, filler with the correct answer, confidence 4.
+ * Returns { behaviour, gaze (CSV text or null), hashes, trials }.
+ */
+async function playSession(page, opts) {
+  const { pid, arm, list, et = 'none', onBill } = opts;
+  await page.addInitScript(() => {
+    window.__hashes = [];
+    window.addEventListener('hashchange', () => window.__hashes.push(location.hash));
+  });
+  await open(page, `mode=run&pid=${pid}&arm=${arm}&list=${list}&et=${et}`);
+  if (opts.beforeWelcome) await opts.beforeWelcome(page);
+  await page.getByRole('button', { name: 'Start the practice order' }).click();
+  const trials = [];
+  for (let order = 0; order < 9; order++) {
+    await page.locator('[data-aoi="LST_CARTBAR"]').waitFor();
+    const trial = (await page.evaluate(() => location.hash)).split('-')[1];
+    trials.push(trial);
+    await page.click('[data-aoi="LST_CARTBAR"]');
+    await page.click('[data-aoi="CRT_PAYBAR"]');
+    await page.locator('[data-aoi="BIL_TOT"]').waitFor();
+    if (onBill) await onBill(page, { trial, order });
+    else await page.click('[data-aoi="BTN_ORDER"]');
+    await page.locator('.probe').waitFor();
+    if (await page.locator('.probe-num').count()) {
+      const T = C.priceCart(C.initialCart(trial)).T;
+      await page.locator('.probe-num input').fill(String(T));
+      await page.getByRole('button', { name: 'Next' }).click();
+      await page.locator('.conf-opt[data-v="4"]').click();
+      await page.getByRole('button', { name: 'Next' }).click();
+    } else {
+      await page.locator('.probe-text').fill(C.TRIALS[trial].filler[1]);
+      await page.getByRole('button', { name: 'Next' }).click();
+    }
+    if (order === 0) await page.getByRole('button', { name: 'Start', exact: true }).click();
+  }
+  await page.getByText('Thank you!').waitFor();
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download behaviour CSV' }).click()]);
+  const behaviour = await readDownload(dl);
+  let gaze = null;
+  if (await page.getByRole('button', { name: 'Download gaze CSV' }).count()) {
+    const [g] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download gaze CSV' }).click()]);
+    gaze = await readDownload(g);
+  }
+  return { behaviour, gaze, hashes: await page.evaluate(() => window.__hashes), trials };
+}
+
+module.exports = { C, APP, DIST, open, view, aois, byName, text, pixelDiff, watchErrors, parseCSV, readDownload, playSession };
