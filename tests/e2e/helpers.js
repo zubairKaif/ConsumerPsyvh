@@ -67,6 +67,7 @@ async function readDownload(download) {
 /**
  * Plays a whole run-mode session like a participant.
  * opts.onBill(page, { trial, order }) handles each first-pass bill (default: Place order).
+ * opts.beforeWelcome(page) and opts.beforeTrial(page, order) handle tracker set-up and check pages.
  * Probes: recall answers with the true final total, filler with the correct answer, confidence 4.
  * Returns { behaviour, gaze (CSV text or null), hashes, trials }.
  */
@@ -81,6 +82,7 @@ async function playSession(page, opts) {
   await page.getByRole('button', { name: 'Start the practice order' }).click();
   const trials = [];
   for (let order = 0; order < 9; order++) {
+    if (opts.beforeTrial) await opts.beforeTrial(page, order);
     await page.locator('[data-aoi="LST_CARTBAR"]').waitFor();
     const trial = (await page.evaluate(() => location.hash)).split('-')[1];
     trials.push(trial);

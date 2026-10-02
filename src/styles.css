@@ -238,3 +238,23 @@ svg { display: block; flex: none; }
 .run-res-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .run-res-btns .run-btn { margin-top: 12px; height: 44px; font-size: 15px; }
 .run-res p { font-size: 13px; line-height: 19px; }
+
+/* ---------- eye-tracking set-up ---------- */
+#webgazerVideoContainer { top: 28px !important; left: 50% !important; transform: translateX(-50%); z-index: 60 !important; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); }
+.ov-cam { align-items: flex-start; padding-top: 296px; }
+.cam-status { display: inline-block; margin-top: 18px; padding: 8px 16px; border-radius: 999px; background: var(--nudge-bg); color: var(--nudge-fg); font-size: 15px; font-weight: 700; }
+.cam-status.is-ok { background: var(--save-bg); color: var(--save-fg); }
+.cam-skip { display: inline-block; margin-top: 18px; font-size: 13px; color: var(--muted); }
+.ov-cal { background: var(--app-bg); }
+.cal-dot { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: #E53935; box-shadow: 0 0 0 5px rgba(229, 57, 53, .22); cursor: pointer; }
+.cal-dot::after { content: ''; position: absolute; left: 11px; top: 11px; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+.cal-dot.is-done { background: #2E9E55; box-shadow: 0 0 0 5px rgba(46, 158, 85, .22); opacity: 1 !important; cursor: default; }
+.cal-prog { position: absolute; left: 50%; bottom: 2.5%; transform: translateX(-50%); font-size: 14px; color: var(--muted); }
+.val-dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: var(--ink); }
+.val-dot::after { content: ''; position: absolute; left: 8px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+.val-badge { display: inline-block; padding: 6px 16px; border-radius: 999px; font-size: 18px; font-weight: 700; }
+.val-good { background: var(--save-bg); color: var(--save-fg); }
+.val-usable { background: var(--nudge-bg); color: var(--nudge-fg); }
+.val-poor { background: #FDE8E7; color: #A3221B; }
+.val-scale { font-size: 13px !important; }
+.run-btn-2 { background: #fff; color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--brand); }

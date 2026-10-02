@@ -4,31 +4,6 @@
 'use strict';
 
 const FIX_MS = 800, BLANK_MS = 500;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r(performance.now())));
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
-function goFullscreen() {
-  const el = document.documentElement;
-  if (document.fullscreenElement || !el.requestFullscreen) return;
-  try { el.requestFullscreen().catch(() => {}); } catch (e) { /* not allowed here; carry on windowed */ }
-}
-
-/** Shows a full-screen page and resolves with the value its submit handler returns. */
-function page(html, wire, cls) {
-  return new Promise((resolve) => {
-    const root = Phone.showOverlay(html, cls || 'ov-run');
-    wire(root, resolve);
-  });
-}
-
-function downloadText(name, text) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-}
 
 const storeKey = (pid) => 'quikkart_' + pid;
 

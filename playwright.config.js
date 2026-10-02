@@ -16,6 +16,11 @@ module.exports = defineConfig({
     deviceScaleFactor: 1,
     acceptDownloads: true,
   },
+  // Webcam tests run last and on their own: MediaPipe on software WebGL is CPU-heavy.
+  projects: [
+    { name: 'app', testIgnore: /webcam\.spec\.js/ },
+    { name: 'webcam', testMatch: /webcam\.spec\.js/, dependencies: ['app'] },
+  ],
   webServer: {
     command: `node scripts/serve.js ${PORT}`,
     url: `http://127.0.0.1:${PORT}/QuikKart_Stimulus_App.html`,
