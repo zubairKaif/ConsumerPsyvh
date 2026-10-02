@@ -1,0 +1,21 @@
+{
+  "name": "quikkart-stimulus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QuikKart eye-tracking stimulus app (SOM 749, IIT Bombay)",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@fontsource/roboto": "5.3.0",
+    "@playwright/test": "1.56.1",
+    "pngjs": "7.0.0",
+    "webgazer": "3.5.3"
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:e2e": "playwright test",
+    "render": "node scripts/build.js && node scripts/render.js",
+    "serve": "node scripts/serve.js",
+    "test": "npm run test:unit && npm run render && playwright test"
+  }
+}

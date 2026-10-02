@@ -1,0 +1,6 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+/QuikKart_Stimulus_Pack.zip
+.DS_Store
