@@ -309,3 +309,18 @@ svg { display: block; flex: none; }
 .con-tobii ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 22px; }
 .con-tobii li { margin-bottom: 8px; }
 .con code { padding: 1px 5px; border-radius: 5px; background: #F0F1F3; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+/* ---------- camera help and console camera test ---------- */
+.run-tech { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; color: var(--muted) !important; }
+.con-cam { margin: -2px 0 14px; }
+.con-cam .con-btn { margin-right: 6px; }
+.con-cam-out { display: flex; gap: 14px; align-items: flex-start; margin-top: 10px; padding: 12px; border-radius: 12px; background: var(--app-bg); }
+.con-cam-out video { width: 160px; height: 120px; flex: none; border-radius: 8px; background: #000; object-fit: cover; transform: scaleX(-1); }
+.con-checks { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 18px; }
+.ck { position: relative; padding-left: 18px; }
+.ck::before { content: ''; position: absolute; left: 0; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #AEB5BE; }
+.ck b { display: block; font-weight: 700; }
+.ck span { color: var(--muted); }
+.ck-ok::before { background: #1E9E55; }
+.ck-bad::before { background: #D93025; }
+.ck-bad b { color: #B3261E; }

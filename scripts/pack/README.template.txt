@@ -138,10 +138,14 @@ The editing phase exists only in the live app, not in the PNG images.
 
 7. WEBCAM EYE TRACKING (LAPTOP)
 -------------------------------
-Choose "Webcam" in the console (et=webcam) and start the app with the start
-script. Webcam tracking uses WebGazer 3.5.3 (ridge regression, Kalman filter,
-no data kept between sessions). No video is recorded, stored or uploaded:
-frames are processed in the browser and discarded.
+Choose "Webcam" in the console (et=webcam; the default) and start the app with
+the start script. The camera turns on only in a session, when the participant
+clicks "Start camera"; with eye tracking set to None or Mouse it stays off.
+Use "Test camera" in the console before the participant arrives: it shows the
+camera picture and checks that WebGazer and its face model can be loaded.
+Webcam tracking uses WebGazer 3.5.3 (ridge regression, Kalman filter, no data
+kept between sessions). No video is recorded, stored or uploaded: frames are
+processed in the browser and discarded.
 1. Camera check: the video appears at the top with the face outline and box.
    "Continue" unlocks once a face is found; "Researcher: continue anyway"
    skips the check.
@@ -160,6 +164,20 @@ Every gaze estimate (about 30 per second on a laptop with a working GPU) is
 logged while a phone screen is shown. Keep hardware acceleration on in the
 browser: without a GPU the face mesh runs slowly and the app feels sluggish.
 et=mouse logs the cursor every 33 ms as if it were gaze, to test the pipeline.
+
+If the camera does not turn on, the screen names the cause and the fix:
+- Eye tracking set to None or Mouse: the camera is not used. Choose Webcam.
+- Camera access was blocked: click the camera icon at the right of the address
+  bar, choose Allow, then Try again. On a Mac, also allow the browser in
+  System Settings > Privacy & Security > Camera.
+- The camera is busy: close Zoom, Teams or the Camera app, then Try again.
+- No camera was found: connect a webcam or open its privacy shutter.
+- Shown inside another page (an app's file preview, for example): open
+  QuikKart_Stimulus_App.html in its own browser tab.
+- Opened as a file without internet (or jsDelivr is blocked): the camera works
+  but WebGazer cannot be downloaded. Use the start script; it works offline.
+Loading gives up after 45 s (the script) or 90 s (the face model) with a
+message instead of waiting forever.
 
 
 8. ACCURACY LIMITS: READ BEFORE ANALYSING

@@ -12,6 +12,65 @@ const VAL_POINTS = [[50, 50], [25, 25], [75, 25], [25, 75], [75, 75]];
 const VAL_SHOW_MS = 2000, VAL_COLLECT_MS = 1200;
 const MID_RECAL_DEG = 4.5;
 const FACE_FRESH_MS = 700;
+// Loading never hangs silently: the script is 1.9 MB, the face model about 10 MB from the CDN on file://.
+const LOAD_TIMEOUT_MS = window.__QK_LOAD_TIMEOUT_MS || 45000;
+const START_TIMEOUT_MS = window.__QK_START_TIMEOUT_MS || 90000;
+
+/** Where WebGazer comes from: ./webcam when served over http(s), the CDN when opened as a file. */
+const wgBase = () => (/^https?:$/.test(location.protocol) ? './webcam' : WG_CDN);
+
+function withTimeout(promise, ms, message) {
+  let timer;
+  const late = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error(message), { name: 'TimeoutError' })), ms);
+  });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
+
+/** Asks for the camera at once, so the permission prompt appears on the click and camera problems
+ *  are reported before WebGazer and its face model are downloaded. Resolves with a MediaStream. */
+function requestCamera() {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return Promise.reject(Object.assign(new Error('This page is not a secure context.'), { name: 'InsecureContext' }));
+  }
+  return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+}
+
+const stopStream = (stream) => { if (stream) stream.getTracks().forEach((t) => t.stop()); };
+
+/** What went wrong and what to do about it, for every way the camera or WebGazer can fail to start. */
+function cameraHelp(err) {
+  const name = (err && err.name) || '', file = location.protocol === 'file:';
+  const embedded = window.self !== window.top;
+  const startScript = 'Start the app with Start_QuikKart_Windows.bat or Start_QuikKart_Mac.command, which open it at http://localhost:8000.';
+  if (embedded && /NotAllowed|Security|NotSupported|InsecureContext/.test(name)) {
+    return { title: 'This page is shown inside another page, which blocks the camera.', fix: 'Open QuikKart_Stimulus_App.html in its own browser tab. ' + startScript };
+  }
+  switch (name) {
+    case 'InsecureContext':
+      return { title: 'The browser allows the camera only on secure pages.', fix: startScript };
+    case 'NotAllowedError': case 'PermissionDeniedError': case 'SecurityError':
+      return { title: 'Camera access was blocked.', fix: 'Click the camera icon at the right of the address bar (or the padlock, then Site settings), choose Allow, then click Try again. Also check that the computer lets the browser use the camera: on a Mac, System Settings > Privacy & Security > Camera; on Windows, Settings > Privacy & security > Camera.' };
+    case 'NotFoundError': case 'DevicesNotFoundError':
+      return { title: 'No camera was found.', fix: 'Connect or switch on a webcam (some laptops have a camera switch or a privacy shutter), then click Try again.' };
+    case 'NotReadableError': case 'TrackStartError': case 'AbortError':
+      return { title: 'The camera is busy or could not start.', fix: 'Close other apps that use the camera (Zoom, Teams, the Camera app) and check the camera privacy settings of the computer, then click Try again.' };
+    case 'OverconstrainedError':
+      return { title: 'The camera does not offer a usable picture size (at least 320 x 240).', fix: 'Use another webcam, then click Try again.' };
+    case 'NotSupportedError':
+      return { title: 'This browser does not allow camera access on this page.', fix: 'Use Chrome or Edge. ' + startScript };
+    case 'LoadError':
+      return file
+        ? { title: 'The camera works, but the eye-tracking files could not be downloaded.', fix: 'Opened as a file, the app downloads WebGazer from cdn.jsdelivr.net, which this computer cannot reach (no internet, or the network blocks it). ' + startScript + ' That uses the copy in the webcam folder and works offline.' }
+        : { title: 'The eye-tracking files are missing.', fix: 'Keep the webcam folder next to QuikKart_Stimulus_App.html (unzip the whole pack), then click Try again.' };
+    case 'TimeoutError':
+      return file
+        ? { title: 'Downloading the eye-tracking files took too long.', fix: 'The connection to cdn.jsdelivr.net is too slow or blocked. ' + startScript + ' That works offline.' }
+        : { title: 'Starting eye tracking took too long.', fix: 'Close other heavy apps, check that hardware acceleration is on in the browser settings, then click Try again.' };
+    default:
+      return { title: 'The camera did not start.', fix: 'Check that a camera is connected, that no other app is using it, and that this page may use it, then click Try again.' };
+  }
+}
 
 const Tracker = {
   create(cfg) {
@@ -108,11 +167,11 @@ class WebcamTracker extends GazeRecorder {
     this.hashOrder = 0;   // order shown in the URL hash during set-up (0) or the mid-session check (5)
   }
 
-  get base() { return /^https?:$/.test(location.protocol) ? './webcam' : WG_CDN; }
+  get base() { return wgBase(); }
 
   async setup() {
-    await this.intro();
-    await this.start();
+    const camera = await this.intro();
+    await this.start(camera);
     await this.cameraCheck();
     await this.calibrateAndCheck();
   }
@@ -136,24 +195,34 @@ class WebcamTracker extends GazeRecorder {
       <p class="run-note">No video is recorded, stored or uploaded. The camera image is processed only inside this browser, on this computer, while the study runs.</p>
       <p>Your browser will ask for permission to use the camera. Please choose Allow.</p>
       <button class="run-btn" data-go>Start camera</button></div>`,
-    (root, done) => root.querySelector('[data-go]').addEventListener('click', () => { goFullscreen(); done(); }));
+    (root, done) => root.querySelector('[data-go]').addEventListener('click', () => {
+      const camera = requestCamera();
+      camera.catch(() => {});   // handled in start()
+      done({ camera });         // wrapped: resolving with the promise itself would wait for the camera
+    }));
   }
 
-  /** Loads WebGazer (./webcam over http(s), the CDN on file://) and starts the camera. Retries on failure. */
-  async start() {
+  /** Camera first (already requested in the click), then WebGazer from ./webcam over http(s) or the CDN on
+   *  file://. Every failure shows what went wrong and how to fix it, with Try again. */
+  async start(first) {
+    let pending = first && first.camera;
     for (;;) {
-      Phone.showOverlay('<div class="run-card"><h1>Starting the camera…</h1><p>This can take a few seconds.</p></div>', 'ov-run');
+      const cdn = this.base === WG_CDN;
+      Phone.showOverlay(`<div class="run-card"><h1>Starting the camera…</h1><p>${cdn
+        ? 'Downloading the eye-tracking files (about 12 MB) the first time. This can take a minute.'
+        : 'This can take a few seconds.'}</p></div>`, 'ov-run');
       try {
+        stopStream(await (pending || requestCamera()));   // permission granted; WebGazer opens its own stream
+        pending = null;
         await this.begin();
         return;
       } catch (err) {
+        pending = null;
         console.warn('Webcam start failed:', err);
         try { if (window.webgazer) window.webgazer.end(); } catch (e) { /* begin() stopped before creating its elements */ }
-        const file = location.protocol === 'file:';
-        await page(`<div class="run-card"><h1>The camera did not start</h1>
-          <p>${esc(err && (err.message || err.name) || err)}</p>
-          <p>${file ? 'Opened as a file, the app loads WebGazer from the internet. Use the start script instead so it runs from http://localhost:8000 and works offline.'
-            : 'Check that a camera is connected, that no other app is using it, and that this page is allowed to use it.'}</p>
+        const help = cameraHelp(err);
+        await page(`<div class="run-card"><h1>${esc(help.title)}</h1><p>${esc(help.fix)}</p>
+          <p class="run-tech">${esc([err && err.name, err && err.message].filter(Boolean).join(': '))}</p>
           <button class="run-btn" data-go>Try again</button></div>`,
         (root, done) => root.querySelector('[data-go]').addEventListener('click', () => done()));
       }
@@ -161,7 +230,9 @@ class WebcamTracker extends GazeRecorder {
   }
 
   async begin() {
-    if (!window.webgazer) await loadScript(this.base + '/webgazer.js');
+    if (!window.webgazer) {
+      await withTimeout(loadScript(this.base + '/webgazer.js'), LOAD_TIMEOUT_MS, 'Loading webgazer.js took too long.');
+    }
     const wg = window.webgazer;
     if (!wg) throw new Error('WebGazer did not load.');
     wg.params.faceMeshSolutionPath = this.base + '/mediapipe/face_mesh';
@@ -187,7 +258,7 @@ class WebcamTracker extends GazeRecorder {
     if (window.isSecureContext) window.alert = (m) => console.info('[WebGazer] ' + m);
     let started;
     try { started = wg.begin(); } finally { window.alert = alert0; }
-    await started;
+    await withTimeout(started, START_TIMEOUT_MS, 'WebGazer did not finish starting.');
     wg.removeMouseEventListeners();   // begin() adds them; they must be on only during calibration
     wg.clearData();
     this.wg = wg;
@@ -217,6 +288,7 @@ class WebcamTracker extends GazeRecorder {
         if (e) e.preventDefault();
         clearInterval(timer);
         wg.showVideoPreview(false);
+        goFullscreen();   // now, so calibration happens in the same viewport as the trials
         done();
       };
       go.addEventListener('click', () => finish());
@@ -328,7 +400,7 @@ function loadScript(src) {
     const s = document.createElement('script');
     s.src = src;
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Could not load ' + src));
+    s.onerror = () => reject(Object.assign(new Error('Could not load ' + src), { name: 'LoadError' }));
     document.head.appendChild(s);
   });
 }

@@ -42,7 +42,7 @@ npm test             # unit tests, render, then all Playwright tests (webcam tes
 | 4 | Listing grid above the cart bar, both arms | `screens.spec.js` |
 | 5 | `et=mouse` run: 9 trials, exact CSV columns, FEES samples | `mouse.spec.js` |
 | 6 | S1 + cookies: B 208, F 16, added_value 90, fee_change −50 | `edit.spec.js` |
-| 7 | Fake camera on localhost: WebGazer from `./webcam`, calibration, no console errors | `webcam.spec.js` |
+| 7 | Fake camera on localhost: WebGazer from `./webcam`, calibration, no console errors | `webcam.spec.js` (failure paths in `camera.spec.js`) |
 | 8 | `trialOrder` matches between the CSV generator and run mode | `pack.spec.js` (all 80 participants) |
 
 ## Decisions worth knowing
@@ -54,6 +54,11 @@ npm test             # unit tests, render, then all Playwright tests (webcam tes
   downloads both CSVs automatically, with buttons as a fallback.
 - **Timing:** `*_ms` columns run from render to leaving the screen. `dec_rt_ms` runs from the bill's first painted
   frame to the click. Gaze `t_ms` is relative to the screen's onset.
+- **Camera first:** "Start camera" calls `getUserMedia` inside the click, before WebGazer (1.9 MB) and its face model
+  (about 10 MB) load. The permission prompt appears at once, and every failure gets a specific message (blocked,
+  busy, missing, embedded page, offline file, timeout). Full screen starts after the camera check, because permission
+  prompts can end full screen and calibration must happen in the final viewport. The console defaults to Webcam and
+  has a "Test camera" check (`tests/e2e/camera.spec.js`).
 - **Face found/lost** comes from wrapping WebGazer's `getEyePatches`. `getPositions()` keeps returning stale
   landmarks after the face is lost.
 - WebGazer's `begin()` raises an `alert` outside https/localhost even where the camera works (`file://`, `127.0.0.1`).

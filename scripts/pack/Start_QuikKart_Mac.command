@@ -11,5 +11,11 @@ else
 fi
 echo "Starting QuikKart at http://localhost:8000/QuikKart_Stimulus_App.html"
 echo "Keep this window open during the session. Press Ctrl+C or close it to stop."
-(sleep 2; open "http://localhost:8000/QuikKart_Stimulus_App.html") &
+# Prefer Chrome (the app is tested in Chromium browsers); otherwise the default browser.
+URL="http://localhost:8000/QuikKart_Stimulus_App.html"
+if [ -d "/Applications/Google Chrome.app" ] || [ -d "$HOME/Applications/Google Chrome.app" ]; then
+  (sleep 2; open -a "Google Chrome" "$URL") &
+else
+  (sleep 2; open "$URL") &
+fi
 exec "$PY" -m http.server 8000 --bind 127.0.0.1

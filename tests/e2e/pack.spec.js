@@ -89,7 +89,8 @@ test.describe('render output and pack', () => {
     const mac = read('Start_QuikKart_Mac.command').toString('utf8');
     expect(mac.startsWith('#!/bin/bash\n')).toBe(true);
     expect(mac).not.toMatch(/\r/);
-    expect(mac).toContain('sleep 2; open "http://localhost:8000/QuikKart_Stimulus_App.html"');
+    expect(mac).toContain('URL="http://localhost:8000/QuikKart_Stimulus_App.html"');
+    expect(mac).toContain('(sleep 2; open "$URL") &');
     expect(mac).toContain('-m http.server 8000');
     if (process.platform !== 'win32') expect(fs.statSync(path.join(DIST, 'Start_QuikKart_Mac.command')).mode & 0o111).toBe(0o111);
 

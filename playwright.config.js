@@ -18,8 +18,8 @@ module.exports = defineConfig({
   },
   // Webcam tests run last and on their own: MediaPipe on software WebGL is CPU-heavy.
   projects: [
-    { name: 'app', testIgnore: /webcam\.spec\.js/ },
-    { name: 'webcam', testMatch: /webcam\.spec\.js/, dependencies: ['app'] },
+    { name: 'app', testIgnore: /(webcam|camera)\.spec\.js/ },
+    { name: 'webcam', testMatch: /(webcam|camera)\.spec\.js/, dependencies: ['app'] },
   ],
   webServer: {
     command: `node scripts/serve.js ${PORT}`,

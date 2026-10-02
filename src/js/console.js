@@ -52,14 +52,20 @@ function startConsole() {
           <label>Probe list<select name="list">${opt('auto', 'Auto from ID')}${opt('A')}${opt('B')}</select></label>
         </div>
         <p class="con-hint" data-assign>Odd numbers get arm A, even numbers arm B; lists alternate A, B within each arm.</p>
-        <label>Eye tracking<select name="et">${opt('none', 'None (Tobii records separately)')}${opt('webcam', 'Webcam (WebGazer)')}${opt('mouse', 'Mouse simulation (testing)')}</select></label>
+        <label>Eye tracking<select name="et">${opt('webcam', 'Webcam (laptop camera, WebGazer)')}${opt('none', 'None: camera off (Tobii records separately)')}${opt('mouse', 'Mouse simulation (testing)')}</select></label>
+        <p class="con-hint" data-et-hint></p>
+        <div class="con-cam" data-cam>
+          <button type="button" class="con-btn" data-cam-test>Test camera</button>
+          <button type="button" class="con-btn" data-cam-stop hidden>Stop camera</button>
+          <div class="con-cam-out" data-cam-out hidden><video data-cam-video autoplay muted playsinline></video><ul class="con-checks" data-cam-checks></ul></div>
+        </div>
         <div class="con-row">
           <label>Screen width (cm)<input name="cm" type="number" step="0.1" min="10" max="200" value="34.5"></label>
           <label>Viewing distance (cm)<input name="dist" type="number" step="1" min="20" max="200" value="60"></label>
         </div>
         <label class="con-check"><input type="checkbox" name="dot"> Show the gaze dot and AOI highlight (demo only, never with participants)</label>
         <div class="con-warn">Webcam tracking error is 2–4° against about 0.5° for the Tobii. It cannot separate individual fee lines, so analyse the coarse groups (FEES, TOTAL, BASE, SAVINGS, NUDGE, BUTTONS).</div>
-        ${file ? '<p class="con-hint con-file">Opened as a file: webcam mode loads WebGazer from the internet. Use the start script to serve it from http://localhost:8000 instead (works offline).</p>' : ''}
+        ${file ? '<p class="con-hint con-file" data-file-hint>Opened as a file: webcam mode downloads WebGazer (about 12 MB) from the internet. Start the app with the start script instead: it uses the webcam folder and works offline.</p>' : ''}
         <div class="con-order" data-order></div>
         <p class="con-hint con-exists" data-exists hidden></p>
         <button class="run-btn" type="submit">Start session</button>
@@ -113,8 +119,17 @@ function startConsole() {
     const list = form.list.value === 'auto' ? (auto && auto.list) : form.list.value;
     return { pid, auto, arm, list };
   };
+  const ET_HINT = {
+    webcam: 'The camera turns on when the participant clicks Start camera. Test it here first.',
+    none: 'The app does not use the camera in this mode.',
+    mouse: 'The mouse position is logged as if it were gaze, to test the pipeline. The camera stays off.',
+  };
   const refresh = () => {
     const r = resolve();
+    root.querySelector('[data-et-hint]').textContent = ET_HINT[form.et.value];
+    root.querySelector('[data-cam]').hidden = form.et.value !== 'webcam';
+    const fileHint = root.querySelector('[data-file-hint]');
+    if (fileHint) fileHint.hidden = form.et.value !== 'webcam';
     const hint = root.querySelector('[data-assign]'), order = root.querySelector('[data-order]'), exists = root.querySelector('[data-exists]');
     if (r.pid && r.auto) hint.textContent = `${normPid(r.pid)} is participant ${participantNumber(r.pid)}: arm ${r.auto.arm}, list ${r.auto.list}.`;
     else if (r.pid) hint.textContent = 'This ID has no number, so choose the arm and list yourself.';
@@ -127,6 +142,7 @@ function startConsole() {
     if (prev) exists.textContent = `A session for ${r.pid} is already saved here (${prev.rows.length} trial${prev.rows.length === 1 ? '' : 's'}). Starting again will overwrite it, so download it first.`;
   };
   form.addEventListener('input', refresh);
+  wireCameraTest(root.querySelector('[data-cam]'));
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const r = resolve();
@@ -175,4 +191,56 @@ function startConsole() {
     }
   });
   renderSaved();
+}
+
+/** Console "Test camera": camera (live preview), WebGazer library and face-model files, each with a fix. */
+function wireCameraTest(box) {
+  const out = box.querySelector('[data-cam-out]'), list = box.querySelector('[data-cam-checks]');
+  const video = box.querySelector('[data-cam-video]'), stopBtn = box.querySelector('[data-cam-stop]');
+  const file = location.protocol === 'file:', base = wgBase();
+  const where = base === WG_CDN ? 'cdn.jsdelivr.net' : 'the webcam folder';
+  const offline = file
+    ? 'Could not download it from cdn.jsdelivr.net (no internet, or the network blocks it). Start the app with the start script instead: it uses the webcam folder and works offline.'
+    : 'Keep the webcam folder next to QuikKart_Stimulus_App.html (unzip the whole pack).';
+  let stream = null;
+  const stop = () => { stopStream(stream); stream = null; video.srcObject = null; stopBtn.hidden = true; };
+  stopBtn.addEventListener('click', () => { stop(); out.hidden = true; });
+  box.querySelector('[data-cam-test]').addEventListener('click', async () => {
+    stop();
+    out.hidden = false;
+    const rows = [];
+    const paint = () => { list.innerHTML = rows.map(([state, title, detail]) => `<li class="ck ck-${state}"><b>${esc(title)}</b>${detail ? `<span>${esc(detail)}</span>` : ''}</li>`).join(''); };
+    rows[0] = ['wait', 'Camera', 'Asking for permission…'];
+    paint();
+    try {
+      stream = await requestCamera();
+      video.srcObject = stream;
+      video.hidden = false;
+      stopBtn.hidden = false;
+      const track = stream.getVideoTracks()[0], set = track.getSettings ? track.getSettings() : {};
+      rows[0] = ['ok', 'Camera works', [track.label, set.width && `${set.width} x ${set.height}`].filter(Boolean).join(' · ')];
+    } catch (err) {
+      video.hidden = true;
+      const h = cameraHelp(err);
+      rows[0] = ['bad', h.title, h.fix];
+    }
+    rows[1] = ['wait', 'Eye-tracking library', 'Loading WebGazer from ' + where + '…'];
+    paint();
+    try {
+      if (!window.webgazer) await withTimeout(loadScript(base + '/webgazer.js'), LOAD_TIMEOUT_MS, 'timed out');
+      rows[1] = ['ok', 'Eye-tracking library', 'WebGazer loaded from ' + where + '.'];
+    } catch (err) {
+      rows[1] = ['bad', 'WebGazer could not be loaded', offline];
+    }
+    rows[2] = ['wait', 'Face model', 'Checking the MediaPipe files…'];
+    paint();
+    try {
+      const res = await withTimeout(fetch(base + '/mediapipe/face_mesh/face_mesh.binarypb', { cache: 'no-store' }), LOAD_TIMEOUT_MS, 'timed out');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      rows[2] = ['ok', 'Face model', 'MediaPipe face-mesh files are reachable in ' + where + '.'];
+    } catch (err) {
+      rows[2] = ['bad', 'The face-model files could not be reached', offline];
+    }
+    paint();
+  });
 }
