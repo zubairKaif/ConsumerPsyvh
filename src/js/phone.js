@@ -95,6 +95,9 @@ const Phone = (() => {
       `<span>${a.aoi}${a.fee !== null ? ' ₹' + a.fee : ''}</span></div>`).join('');
   }
 
+  /** Redraws the AOI overlay (after web fonts finish loading the layout can shift slightly). */
+  function redraw() { if (showAOIs) drawAOIs(); }
+
   function setAOIOverlay(on) {
     showAOIs = !!on;
     if (showAOIs) drawAOIs(); else aoiLayer.innerHTML = '';
@@ -107,7 +110,7 @@ const Phone = (() => {
     hilite.style.cssText = `left:${rect.x}px;top:${rect.y}px;width:${rect.w}px;height:${rect.h}px`;
   }
 
-  return { mount, fit, show, update, showOverlay, getAOIs, phoneRect, drawAOIs, setAOIOverlay, highlight,
+  return { mount, fit, show, update, showOverlay, getAOIs, phoneRect, drawAOIs, redraw, setAOIOverlay, highlight,
     onResize: (f) => resizeHooks.push(f) };
 })();
 

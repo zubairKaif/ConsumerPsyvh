@@ -18,9 +18,10 @@ function fontsReady() {
 
 /** data-ready="1" on <html> once fonts are in and the first screen has painted (used by the renderer). */
 function markReady() {
-  fontsReady().then(() => requestAnimationFrame(() => requestAnimationFrame(() => {
-    document.documentElement.dataset.ready = '1';
-  })));
+  fontsReady().then(() => {
+    Phone.redraw();
+    requestAnimationFrame(() => requestAnimationFrame(() => { document.documentElement.dataset.ready = '1'; }));
+  });
 }
 
 function paramError(msg) {
