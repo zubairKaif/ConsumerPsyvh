@@ -72,12 +72,11 @@ test.describe('researcher console (default page)', () => {
     await expect(tab.locator('.aoi-box')).toHaveCount(3);
   });
 
-  test('saved sessions: download behaviour and gaze CSVs, combined CSV, overwrite warning, delete', async ({ page }) => {
+  test('saved sessions: download behaviour CSVs, combined CSV, overwrite warning, delete', async ({ page }) => {
     await open(page, '');
     const row = (pid, trial) => Object.fromEntries(C.BEHAVIOUR_COLUMNS.map((c) => [c, c === 'pid' ? pid : c === 'trial_id' ? trial : '']));
     await page.evaluate(([a, b]) => {
       localStorage.setItem('quikkart_P001', JSON.stringify({ pid: 'P001', arm: 'A', list: 'A', et: 'mouse', updated: '2026-10-02T10:00:00Z', complete: true, rows: a }));
-      localStorage.setItem('quikkart_P001_gaze', 'pid,arm\r\nP001,A\r\n');
       localStorage.setItem('quikkart_P002', JSON.stringify({ pid: 'P002', arm: 'B', list: 'A', et: 'none', updated: '2026-10-02T11:00:00Z', complete: false, rows: b }));
       localStorage.setItem('unrelated', 'x');
     }, [[row('P001', 'P0'), row('P001', 'S1')], [row('P002', 'P0')]]);
@@ -94,7 +93,6 @@ test.describe('researcher console (default page)', () => {
     const parsed = parseCSV(beh.text);
     expect(parsed.header).toEqual(C.BEHAVIOUR_COLUMNS);
     expect(parsed.rows.map((r) => r.trial_id)).toEqual(['P0', 'S1']);
-    expect((await dl('[data-gz="quikkart_P001"]')).text).toBe('pid,arm\r\nP001,A\r\n');
     expect(parseCSV((await dl('[data-all]')).text).rows).toHaveLength(3);
 
     await page.fill('input[name=pid]', 'P002');

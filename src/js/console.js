@@ -7,10 +7,10 @@ function savedSessions() {
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!/^quikkart_/.test(key) || /_gaze$/.test(key)) continue;
+      if (!/^quikkart_/.test(key)) continue;
       try {
         const s = JSON.parse(localStorage.getItem(key));
-        if (s && Array.isArray(s.rows)) out.push(Object.assign({ key, hasGaze: localStorage.getItem(key + '_gaze') !== null }, s));
+        if (s && Array.isArray(s.rows)) out.push(Object.assign({ key }, s));
       } catch (e) { /* not ours */ }
     }
   } catch (e) { /* storage blocked */ }
@@ -151,12 +151,11 @@ function startConsole() {
   const savedBox = root.querySelector('[data-saved]');
   const renderSaved = () => {
     const list = savedSessions();
-    if (!list.length) { savedBox.innerHTML = '<p class="con-hint">None yet. Run mode saves the behaviour data here after every trial.</p>'; return; }
+    if (!list.length) { savedBox.innerHTML = '<p class="con-hint">None yet. Run mode saves the behaviour data here after every trial (gaze data is downloaded at the end of the session).</p>'; return; }
     savedBox.innerHTML = `<table class="ss"><tbody>${list.map((s) => `<tr>
       <td><b>${esc(s.pid)}</b><div class="muted">arm ${esc(s.arm)} · list ${esc(s.list)} · ${esc(s.et)}</div></td>
       <td>${s.rows.length} of 9 trials${s.complete ? '' : ' <span class="tag tag-warn">incomplete</span>'}<div class="muted">${esc(String(s.updated || '').replace('T', ' ').slice(0, 16))} UTC</div></td>
       <td class="ss-btns"><button class="con-btn" data-dl="${esc(s.key)}">Behaviour CSV</button>
-      ${s.hasGaze ? `<button class="con-btn" data-gz="${esc(s.key)}">Gaze CSV</button>` : ''}
       <button class="con-btn con-del" data-del="${esc(s.key)}">Delete</button></td></tr>`).join('')}</tbody></table>
       <button class="con-btn" data-all>Download all behaviour data (one CSV)</button>`;
   };
@@ -167,12 +166,9 @@ function startConsole() {
     if (b.dataset.dl) {
       const s = list.find((x) => x.key === b.dataset.dl);
       downloadText(`QuikKart_${s.pid}_behaviour.csv`, toCSV(BEHAVIOUR_COLUMNS, s.rows));
-    } else if (b.dataset.gz) {
-      const s = list.find((x) => x.key === b.dataset.gz);
-      downloadText(`QuikKart_${s.pid}_gaze.csv`, localStorage.getItem(s.key + '_gaze'));
     } else if (b.dataset.del) {
       if (!window.confirm('Delete the saved data for ' + b.dataset.del.replace(/^quikkart_/, '') + '? This cannot be undone.')) return;
-      try { localStorage.removeItem(b.dataset.del); localStorage.removeItem(b.dataset.del + '_gaze'); } catch (err) { /* ignore */ }
+      try { localStorage.removeItem(b.dataset.del); } catch (err) { /* ignore */ }
       renderSaved(); refresh();
     } else if (b.hasAttribute('data-all')) {
       downloadText('QuikKart_all_behaviour.csv', toCSV(BEHAVIOUR_COLUMNS, list.flatMap((s) => s.rows)));

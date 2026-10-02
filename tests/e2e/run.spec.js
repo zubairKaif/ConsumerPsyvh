@@ -42,11 +42,17 @@ test.describe('run mode', () => {
     expect(hashes).toContain('#0-none-practicedone');
     expect(hashes[hashes.length - 1]).toBe('#9-none-end');
 
-    // Autosave to localStorage.
+    // The end-page buttons download the same file again.
+    const [again] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download behaviour CSV' }).click()]);
+    expect(again.suggestedFilename()).toBe('QuikKart_P003_behaviour.csv');
+    await expect(page.getByRole('button', { name: 'Download gaze CSV' })).toHaveCount(0);
+
+    // Autosave to localStorage (behaviour only).
     const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), 'quikkart_' + pid);
     expect(saved.complete).toBe(true);
     expect(saved.rows).toHaveLength(9);
     expect(saved.columns).toEqual(C.BEHAVIOUR_COLUMNS);
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('quikkart_')))).toEqual(['quikkart_P003']);
   });
 
   test('Exit and Add item decisions are recorded; arm and list default from the pid', async ({ page }) => {

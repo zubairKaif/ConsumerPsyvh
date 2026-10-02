@@ -148,6 +148,7 @@ class WebcamTracker extends GazeRecorder {
         return;
       } catch (err) {
         console.warn('Webcam start failed:', err);
+        try { if (window.webgazer) window.webgazer.end(); } catch (e) { /* begin() stopped before creating its elements */ }
         const file = location.protocol === 'file:';
         await page(`<div class="run-card"><h1>The camera did not start</h1>
           <p>${esc(err && (err.message || err.name) || err)}</p>

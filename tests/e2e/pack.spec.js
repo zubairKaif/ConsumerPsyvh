@@ -82,8 +82,8 @@ test.describe('render output and pack', () => {
     const bat = read('Start_QuikKart_Windows.bat').toString('utf8');
     expect(bat).toMatch(/\r\n/);
     expect(bat.replace(/\r\n/g, '')).not.toMatch(/\n/);
-    expect(bat).toContain('python --version');
-    expect(bat).toContain('py -3 --version');
+    expect(bat).toContain('python -c "import http.server"');
+    expect(bat).toContain('py -3 -c "import http.server"');
     expect(bat).toContain('http://localhost:8000/QuikKart_Stimulus_App.html');
     expect(bat).toContain('-m http.server 8000');
     const mac = read('Start_QuikKart_Mac.command').toString('utf8');

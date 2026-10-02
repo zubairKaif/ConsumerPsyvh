@@ -90,10 +90,12 @@ returns the 8 test trials in that participant's order.
      you?" from 1 (Not at all sure) to 5 (Completely sure);
    - on the other 4 trials, the filler question, typed.
 5. "Practice done" after P0. With webcam tracking, a check runs before trial 5.
-6. End page: download the behaviour CSV (and the gaze CSV when tracking was
-   on). The behaviour data is also saved in the browser after every trial,
-   under quikkart_<pid>; the console can download it later. The console
-   warns before a new session would overwrite a saved one.
+6. End page: the behaviour CSV (and the gaze CSV when tracking was on)
+   download automatically; buttons download them again. The behaviour data
+   is also saved in the browser after every trial, under quikkart_<pid>, so
+   the console can download it later, even after a crash. Gaze data lives
+   only in memory until that download (it is too big for browser storage).
+   The console warns before a new session would overwrite a saved one.
 
 
 5. THE EDITING PHASE

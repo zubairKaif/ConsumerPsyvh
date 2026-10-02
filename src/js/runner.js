@@ -86,21 +86,24 @@ class Session {
     (root, done) => root.querySelector('[data-go]').addEventListener('click', () => done()));
   }
 
+  /** End page: the CSVs download straight away; the buttons download them again if needed. */
   end() {
     setHash(this.order.length, 'none', 'end');
     const gaze = this.tracker.hasGaze();
+    const files = { beh: () => downloadText(`QuikKart_${this.pid}_behaviour.csv`, this.behaviourCSV()),
+      gaze: () => downloadText(`QuikKart_${this.pid}_gaze.csv`, this.tracker.gazeCSV()) };
     const saved = this.savedOK ? `Behaviour data is also saved in this browser as <b>${esc(storeKey(this.pid))}</b>.` :
-      'Saving in this browser failed, so download the files now.';
+      'Saving in this browser failed, so check that the downloads arrived.';
     return page(`<div class="run-card"><h1>Thank you!</h1><p>You have finished. Please let the researcher know.</p>
       <div class="run-res"><div class="run-res-k">Researcher</div>
+        <p>The ${gaze ? 'behaviour and gaze CSVs were' : 'behaviour CSV was'} downloaded automatically. If ${gaze ? 'one is' : 'it is'} missing, download it here:</p>
         <div class="run-res-btns"><button class="run-btn" data-dl="beh">Download behaviour CSV</button>
         ${gaze ? '<button class="run-btn" data-dl="gaze">Download gaze CSV</button>' : ''}</div>
         <p>${saved}</p></div></div>`,
     (root) => {
-      root.querySelectorAll('[data-dl]').forEach((b) => b.addEventListener('click', () => {
-        if (b.dataset.dl === 'beh') downloadText(`QuikKart_${this.pid}_behaviour.csv`, this.behaviourCSV());
-        else downloadText(`QuikKart_${this.pid}_gaze.csv`, this.tracker.gazeCSV());
-      }));
+      root.querySelectorAll('[data-dl]').forEach((b) => b.addEventListener('click', () => files[b.dataset.dl]()));
+      files.beh();
+      if (gaze) setTimeout(files.gaze, 800);
     });
   }
 
@@ -252,11 +255,11 @@ class Session {
 
   behaviourCSV() { return toCSV(BEHAVIOUR_COLUMNS, this.rows); }
 
+  /** Behaviour data only: gaze CSVs (1-2 MB each) would soon fill the ~5 MB quota that all file:// pages share. */
   autosave() {
     this.savedOK = saveLocal(storeKey(this.pid), JSON.stringify({
       pid: this.pid, arm: this.arm, list: this.list, et: this.et, started: this.started,
       updated: new Date().toISOString(), complete: this.done, columns: BEHAVIOUR_COLUMNS, rows: this.rows,
     }));
-    if (this.done && this.tracker.hasGaze()) saveLocal(storeKey(this.pid) + '_gaze', this.tracker.gazeCSV());
   }
 }

@@ -1,5 +1,6 @@
 'use strict';
 const path = require('path');
+const { expect } = require('@playwright/test');
 const { PNG } = require('pngjs');
 const C = require('../../src/js/core.js');
 
@@ -73,6 +74,8 @@ async function readDownload(download) {
  */
 async function playSession(page, opts) {
   const { pid, arm, list, et = 'none', onBill } = opts;
+  const downloads = [];
+  page.on('download', (d) => downloads.push(d));
   await page.addInitScript(() => {
     window.__hashes = [];
     window.addEventListener('hashchange', () => window.__hashes.push(location.hash));
@@ -104,15 +107,14 @@ async function playSession(page, opts) {
     }
     if (order === 0) await page.getByRole('button', { name: 'Start', exact: true }).click();
   }
+  // The end page downloads the CSVs by itself (gaze only when tracking was on).
   await page.getByText('Thank you!').waitFor();
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download behaviour CSV' }).click()]);
-  const behaviour = await readDownload(dl);
-  let gaze = null;
-  if (await page.getByRole('button', { name: 'Download gaze CSV' }).count()) {
-    const [g] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download gaze CSV' }).click()]);
-    gaze = await readDownload(g);
-  }
-  return { behaviour, gaze, hashes: await page.evaluate(() => window.__hashes), trials };
+  const want = et === 'none' ? ['behaviour'] : ['behaviour', 'gaze'];
+  const find = (w) => downloads.find((d) => d.suggestedFilename() === `QuikKart_${pid}_${w}.csv`);
+  await expect.poll(() => want.every(find), { timeout: 15000 }).toBe(true);
+  const behaviour = await readDownload(find('behaviour'));
+  const gaze = et === 'none' ? null : await readDownload(find('gaze'));
+  return { behaviour, gaze, downloads, hashes: await page.evaluate(() => window.__hashes), trials };
 }
 
 module.exports = { C, APP, DIST, open, view, aois, byName, text, pixelDiff, watchErrors, parseCSV, readDownload, playSession };
